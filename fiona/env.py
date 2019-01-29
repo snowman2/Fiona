@@ -538,7 +538,6 @@ def require_gdal_version(version, param=None, values=None, is_max_version=False,
     reason = '\n{0}'.format(reason) if reason else reason
 
     def decorator(f):
-        @wraps(f)
         def wrapper(*args, **kwds):
             if ((runtime < version and not is_max_version) or
                     (is_max_version and runtime > version)):
