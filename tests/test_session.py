@@ -3,6 +3,8 @@ import pytest
 
 import fiona
 
+from .conftest import requires_gdal2
+
 
 def test_get(path_coutwildrnp_shp):
     with fiona.open(path_coutwildrnp_shp) as col:
@@ -20,6 +22,7 @@ def test_get(path_coutwildrnp_shp):
     ("layer", None, {}),
     ("layer", "test", {}),  
 ])
+@requires_gdal2
 def test_set_tags(layer, namespace, tags, tmpdir):
     test_geopackage = str(tmpdir.join("test.gpkg"))
     schema = {'properties': {'CDATA1': 'str:254'}, 'geometry': 'Polygon'}
@@ -41,6 +44,7 @@ def test_set_tags(layer, namespace, tags, tmpdir):
     ("test", None),
     ("test", "test"),
 ])
+@requires_gdal2
 def test_set_tag_item(layer, namespace, tmpdir):
     test_geopackage = str(tmpdir.join("test.gpkg"))
     schema = {'properties': {'CDATA1': 'str:254'}, 'geometry': 'Polygon'}

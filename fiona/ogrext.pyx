@@ -31,6 +31,7 @@ from fiona.errors import (
     DriverError, DriverIOError, SchemaError, CRSError, FionaValueError,
     TransactionError, GeometryTypeValidationError, DatasetDeleteError,
     FionaDeprecationWarning)
+from fiona.env import require_gdal_version
 from fiona.compat import OrderedDict
 from fiona.rfc3339 import parse_date, parse_datetime, parse_time
 from fiona.rfc3339 import FionaDateType, FionaDateTimeType, FionaTimeType
@@ -822,7 +823,7 @@ cdef class Session:
         else:
             return 0
 
-
+    @require_gdal_version("2.0")
     def tags(self, ns=None):
         """Returns a dict containing copies of the dataset or layers's
         tags. Tags are pairs of key and value strings. Tags belong to
@@ -857,6 +858,7 @@ cdef class Session:
         return dict(metadata[i].decode('utf-8').split('=', 1) for i in range(num_items))
 
 
+    @require_gdal_version("2.0")
     def get_tag_item(self, key, ns=None):
         """Returns tag item value
 
@@ -1281,6 +1283,7 @@ cdef class WritingSession(Session):
         gdal_flush_cache(cogr_ds)
         log.debug("Flushed data source cache")
 
+    @require_gdal_version("2.0")
     def set_tags(self, tags, ns=None):
         """Writes a dict containing the dataset or layers's tags.
         Tags are pairs of key and value strings. Tags belong to
@@ -1320,6 +1323,7 @@ cdef class WritingSession(Session):
         finally:
             CSLDestroy(metadata)
 
+    @require_gdal_version("2.0")
     def set_tag_item(self, key, tag, ns=None):
         """Sets the tag item value
 
