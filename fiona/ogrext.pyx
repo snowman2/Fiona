@@ -317,12 +317,12 @@ cdef class OGRFeatureBuilder:
         # Python 3).
         encoding = session.get_internalencoding()
 
-        for key, value in feature['properties'].items():
+        for key, field_type in collection.schema['properties'].items():
             # log.debug(
             #     "Looking up %s in %s", key, repr(session._schema_mapping))
             ogr_key = session._schema_mapping[key]
-
-            schema_type = normalize_field_type(collection.schema['properties'][key])
+            value = feature['properties'].get(key)
+            schema_type = normalize_field_type(field_type)
 
             # log.debug("Normalizing schema type for key %r in schema %r to %r", key, collection.schema['properties'], schema_type)
             key_bytes = strencode(ogr_key, encoding)
@@ -1154,12 +1154,6 @@ cdef class WritingSession(Session):
             cogr_feature = OGRFeatureBuilder().build(record, collection)
             result = OGR_L_CreateFeature(cogr_layer, cogr_feature)
             if result != OGRERR_NONE:
-                # Validate against collection's schema to give useful message
-                if set(record['properties'].keys()) != schema_props_keys:
-                    raise ValueError(
-                        "Record does not match collection schema: %r != %r" % (
-                            record['properties'].keys(),
-                            list(schema_props_keys) ))
                 raise RuntimeError("Failed to write record: %s" % record)
             _deleteOgrFeature(cogr_feature)
 
