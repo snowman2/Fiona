@@ -123,3 +123,24 @@ def test_fio_load_layer(tmpdir, runner):
 
     finally:
         shutil.rmtree(outdir)
+
+@pytest.mark.parametrize("extension, driver", [
+    ("shp", "ESRI Shapefile"),
+    ("geojson", "GeoJSON"),
+    ("json", "GeoJSON"),
+    ("gpkg", "GPKG"),
+    ("SHP", "ESRI Shapefile"),
+])
+def test_load__auto_detect_format(tmpdir, runner, feature_seq, extension, driver):
+    tmpfile = str(tmpdir.mkdir('tests').join('test_src_vs_dst_crs.{}'.format(extension)))
+    result = runner.invoke(main_group, [
+        'load',
+        '--src-crs',
+        'EPSG:32617',
+        tmpfile
+    ], feature_seq)
+    assert result.exit_code == 0
+    with fiona.open(tmpfile.lower()) as src:
+        assert src.crs == {'init': 'epsg:32617'}
+        assert len(src) == len(feature_seq.splitlines())
+        assert src.driver == driver
