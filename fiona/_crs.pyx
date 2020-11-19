@@ -6,6 +6,7 @@ Calls methods from GDAL's OSR module.
 from __future__ import absolute_import
 
 import logging
+import warnings
 
 from six import string_types
 
@@ -22,8 +23,49 @@ logger = logging.getLogger(__name__)
 cdef int OAMS_TRADITIONAL_GIS_ORDER = 0
 
 
+cdef _osr_to_wkt(OGRSpatialReferenceH cogr_srs, crs, wkt_version):
+    cdef char *wkt_c = NULL
+    wkt = None
+    IF (CTE_GDAL_MAJOR_VERSION, CTE_GDAL_MINOR_VERSION) >= (3, 0):
+        cdef const char* options_wkt[2]
+        wkt_format = "FORMAT={}".format(wkt_version or "WKT1_GDAL").encode("utf-8")
+        options_wkt[0] = wkt_format
+        options_wkt[1] = NULL
+        OSRExportToWktEx(cogr_srs, &wkt_c, options_wkt)
+        if wkt_c != NULL:
+            wkt_b = wkt_c
+            wkt = wkt_b.decode('utf-8')
+        if not wkt and wkt_version is None:
+            # attempt to morph to ESRI before export
+            wkt_format = "FORMAT={}".format("WKT1_ESRI").encode("utf-8")
+            options_wkt[0] = wkt_format
+            OSRExportToWktEx(cogr_srs, &wkt_c, options_wkt)
+
+    ELSE:
+        if wkt_version is not None:
+            warnings.warn("'wkt_version' is only supported with GDAL 3+")
+
+        OSRExportToWkt(cogr_srs, &wkt_c)
+        if wkt_c != NULL:
+            wkt_b = wkt_c
+            wkt = wkt_b.decode('utf-8')
+        if not wkt:
+            # attempt to morph to ESRI before export
+            OSRMorphToESRI(cogr_srs)
+            OSRExportToWkt(cogr_srs, &wkt_c)
+
+    if wkt_c != NULL:
+        wkt_b = wkt_c
+        wkt = wkt_b.decode('utf-8')
+
+    _cpl.CPLFree(wkt_c)
+
+    if not wkt:
+        raise CRSError("Invalid input to create CRS: {}".format(crs))
+    return wkt
+
 # Export a WKT string from input crs.
-def crs_to_wkt(crs):
+def crs_to_wkt(crs, wkt_version=None):
     """Convert a Fiona CRS object to WKT format"""
     cdef OGRSpatialReferenceH cogr_srs = NULL
     cdef char *proj_c = NULL
@@ -69,15 +111,4 @@ def crs_to_wkt(crs):
         raise CRSError("Invalid input to create CRS: {}".format(crs))
 
     osr_set_traditional_axis_mapping_strategy(cogr_srs)
-    OSRExportToWkt(cogr_srs, &proj_c)
-
-    if proj_c == NULL:
-        raise CRSError("Invalid input to create CRS: {}".format(crs))
-
-    proj_b = proj_c
-    _cpl.CPLFree(proj_c)
-
-    if not proj_b:
-        raise CRSError("Invalid input to create CRS: {}".format(crs))
-
-    return proj_b.decode('utf-8')
+    return _osr_to_wkt(cogr_srs, crs, wkt_version)

@@ -105,6 +105,7 @@ extra_link_args = []
 gdal_output = [None for i in range(4)]
 gdalversion = None
 language = None
+compile_time_env = None
 
 if 'clean' not in sys.argv:
     try:
@@ -181,6 +182,10 @@ if 'clean' not in sys.argv:
     gdal_version_parts = gdalversion.split('.')
     gdal_major_version = int(gdal_version_parts[0])
     gdal_minor_version = int(gdal_version_parts[1])
+    compile_time_env = {
+        "CTE_GDAL_MAJOR_VERSION": gdal_major_version,
+        "CTE_GDAL_MINOR_VERSION": gdal_minor_version,
+    }
 
     log.info("GDAL version major=%r minor=%r", gdal_major_version, gdal_minor_version)
 
@@ -188,7 +193,8 @@ ext_options = dict(
     include_dirs=include_dirs,
     library_dirs=library_dirs,
     libraries=libraries,
-    extra_link_args=extra_link_args)
+    extra_link_args=extra_link_args,
+    cython_compile_time_env=compile_time_env)
 
 # Enable coverage for cython pyx files.
 if os.environ.get('CYTHON_COVERAGE'):
@@ -249,6 +255,7 @@ if source_is_repo and "clean" not in sys.argv:
         Extension('fiona._shim', ['fiona/_shim.pyx'], **ext_options),
         Extension('fiona.ogrext', ['fiona/ogrext.pyx'], **ext_options)
         ],
+        compile_time_env=compile_time_env,
         compiler_directives={"language_level": "3"}
     )
 
